@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>昭和スタジオ — Morphic 전용 제작 도구</title>
+<style>
+/* ── 디자인 토큰 ── */
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e0dbd4;
+  --text: #1a1917;
+  --text2: #6b6760;
+  --text3: #9c9890;
+  --accent: #2a5f8f;
+  --accent-light: #e8f0f8;
+  --accent2: #4a8a60;
+  --accent2-light: #e8f5ed;
+  --warn: #8a5a20;
+  --warn-light: #fdf2e0;
+  --danger: #8a2a2a;
+  --danger-light: #fde8e8;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── 헤더 ── */
+.app-header {
+  background: var(--accent);
+  color: #fff;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.app-header h1 { font-size: 17px; font-weight: 600; flex: 1; }
+.app-header .version { font-size: 11px; opacity: 0.7; }
+
+/* ── 탭 네비게이션 ── */
+.tab-nav {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: sticky;
+  top: 53px;
+  z-index: 99;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-light);
+}
+.tab-btn:hover:not(.active) { background: var(--surface2); }
+
+/* ── 메인 컨텐츠 ── */
+.main { padding: 16px; max-width: 800px; margin: 0 auto; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── 카드 ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── 폼 요소 ── */
+label { font-size: 13px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 4px; }
+select, input[type="text"], input[type="number"], textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface2);
+  outline: none;
+  transition: border 0.2s;
+  font-family: inherit;
+}
+select:focus, input:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+textarea { resize: vertical; min-height: 80px; }
+.form-row { margin-bottom: 12px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+
+/* ── 버튼 ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #1e4a70; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-success { background: var(--accent2); color: #fff; }
+.btn-success:hover { background: #3a7050; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-block { width: 100%; justify-content: center; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* ── 출력 박스 ── */
+.output-box {
+  background: #1a1917;
+  color: #e8e4dc;
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  position: relative;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.output-box.light {
+  background: var(--surface2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.25); }
+.copy-btn.copied { background: var(--accent2); }
+
+/* ── 배지 ── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-A { background: #fde8e8; color: #8a2a2a; }
+.badge-B { background: #fdf2e0; color: #8a5a20; }
+.badge-shorts { background: var(--accent-light); color: var(--accent); }
+.badge-long { background: var(--accent2-light); color: var(--accent2); }
+
+/* ── 체크리스트 ── */
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.checklist-item:hover { background: var(--surface2); }
+.checklist-item input[type="checkbox"] { 
+  width: 18px; height: 18px; 
+  accent-color: var(--accent); 
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.checklist-item.checked .cl-text { color: var(--text3); text-decoration: line-through; }
+.cl-text { flex: 1; font-size: 14px; }
+.cl-weight { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+.cl-section {
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+
+/* ── 진행바 ── */
+.progress-wrap { margin-bottom: 16px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.progress-bar { height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.progress-fill {
+  height: 100%;
+  background: var(--accent2);
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+
+/* ── 콘텐츠 목록 ── */
+.content-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.content-item:hover { border-color: var(--accent); background: var(--accent-light); }
+.content-item.done { opacity: 0.5; }
+.content-item.selected { border-color: var(--accent); background: var(--accent-light); }
+.ci-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.ci-meta { font-size: 12px; color: var(--text2); display: flex; gap: 8px; flex-wrap: wrap; }
+.ci-hook { font-size: 12px; color: var(--text3); margin-top: 4px; font-style: italic; }
+
+/* ── SOP 단계 ── */
+.sop-step {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--border);
+  margin-bottom: 8px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+}
+.sop-step.active { border-left-color: var(--accent); background: var(--accent-light); }
+.sop-step.done { border-left-color: var(--accent2); background: var(--accent2-light); }
+.sop-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.sop-step.active .sop-num { background: var(--accent); color: #fff; }
+.sop-step.done .sop-num { background: var(--accent2); color: #fff; }
+.sop-content { flex: 1; }
+.sop-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.sop-desc { font-size: 12px; color: var(--text2); }
+.sop-time { font-size: 11px; color: var(--text3); }
+
+/* ── 칩 선택기 ── */
+.chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+  user-select: none;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── 토스트 ── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1a1917;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 14px;
+  z-index: 9999;
+  transition: transform 0.3s;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── 필터바 ── */
+.filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--surface);
+}
+.filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── 스크립트 섹션 ── */
+.script-section { margin-bottom: 16px; }
+.script-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.script-block {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ── 모달 ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+/* ── 통계 카드 ── */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.stat-card {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+.stat-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ── 주간 캘린더 ── */
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.day-card {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+}
+.day-card .day-name { font-weight: 600; color: var(--text2); margin-bottom: 4px; }
+.day-task { background: var(--accent); color: #fff; border-radius: 4px; padding: 2px 4px; margin-top: 3px; font-size: 10px; }
+.day-task.shorts { background: var(--accent); }
+.day-task.long { background: var(--accent2); }
+.day-task.community { background: var(--warn); }
+.day-task.live { background: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="app-header">
+  <span>🎬</span>
+  <h1>昭和スタジオ</h1>
+  <span class="version">v1.0 · Morphic 전용</span>
+</div>
+
+<!-- 탭 네비게이션 -->
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" onclick="App.switchTab('prompt')">🔮 프롬프트</button>
+  <button class="tab-btn" onclick="App.switchTab('script')">📝 대본</button>
+  <button class="tab-btn" onclick="App.switchTab('content')">📋 콘텐츠뱅크</button>
+  <button class="tab-btn" onclick="App.switchTab('checklist')">✅ 체크리스트</button>
+  <button class="tab-btn" onclick="App.switchTab('sop')">⚙️ SOP</button>
+  <button class="tab-btn" onclick="App.switchTab('week')">📅 주간계획</button>
+</div>
+
+<div class="main">
+
+<!-- ══════════════════════════════════════════
+     탭 1: 프롬프트 생성기
+══════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-prompt">
+
+  <div class="card">
+    <div class="card-title">🔮 Morphic 프롬프트 생성기</div>
+
+    <div class="form-row">
+      <label>장면 유형</label>
+      <div class="chip-group" id="sceneChips"></div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>시대</label>
+        <select id="eraSelect">
+          <option value="昭和30年代">昭和30年代 (1955~64)</option>
+          <option value="昭和40年代" selected>昭和40年代 (1965~74)</option>
+          <option value="昭和50年代">昭和50年代 (1975~84)</option>
+          <option value="昭和60年代">昭和60年代 (1985~88)</option>
+          <option value="明治時代">明治時代</option>
+          <option value="大正時代">大正時代</option>
+          <option value="昭和初期">昭和初期 (전전)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>시간대</label>
+        <select id="timeSelect">
+          <option value="夕暮れ時" selected>夕暮れ時 (황혼)</option>
+          <option value="朝の光">朝の光 (아침)</option>
+          <option value="昼下がり">昼下がり (오후)</option>
+          <option value="夜">夜 (밤)</option>
+          <option value="雨の日">雨の日 (비 오는 날)</option>
+          <option value="冬の曇り空">冬の曇り空 (겨울 흐린 날)</option>
+          <option value="夏の昼">夏の昼 (여름 한낮)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>카메라 워크</label>
+        <select id="cameraSelect">
+          <option value="ゆっくりとしたパンニング">느린 패닝</option>
+          <option value="固定カメラ" selected>고정 카메라</option>
+          <option value="ゆっくりとしたズームイン">느린 줌인</option>
+          <option value="俯瞰ショット">부감 (위에서)</option>
+          <option value="ローアングル">로우앵글</option>
+          <option value="ドリーショット">돌리 샷</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>화면 분위기</label>
+        <select id="moodSelect">
+          <option value="16mmフィルム風、ノスタルジック" selected>16mm 필름·노스탤직</option>
+          <option value="映画的な構図、温かい色調">영화적·따뜻한 색조</option>
+          <option value="白黒写真風">흑백 사진풍</option>
+          <option value="セピア調、懐かしい">세피아·그리움</option>
+          <option value="柔らかい自然光">부드러운 자연광</option>
+          <option value="薄暮の光、詩的">박명·시적인</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>추가 요소 (선택, 쉼표 구분)</label>
+      <input type="text" id="extraKeywords" placeholder="예: 子供たち, 自転車, 煙突">
+    </div>
+
+    <div class="form-row">
+      <label>금지 요소</label>
+      <div class="chip-group" id="prohibitChips"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="App.modules.Prompt.generate()">✨ 프롬프트 생성</button>
+      <button class="btn btn-secondary" onclick="App.modules.Prompt.reset()">↺ 초기화</button>
+    </div>
+  </div>
+
+  <div class="card" id="promptOutput" style="display:none">
+    <div class="card-title">📋 생성된 Morphic 프롬프트</div>
+    <div class="output-box" id="promptText">
+      <button class="copy-btn" onclick="App.copyText('promptText', this)">복사</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-success btn-sm" onclick="App.modules.Prompt.saveToBank()">📚 저장</button>
+      <button class="btn btn-secondary btn-sm" onclick="App.modules.Prompt.generateVariant()">🔄 변형 생성</button>
+    </div>
+  </div>
+
+  <!-- 저장된 프롬프트 -->
+  <div class="card" id="savedPromptsCard">
+    <div class="card-title">💾 저장된 프롬프트 (<span id="savedCount">0</span>개)</div>
+    <div id="savedPromptsList">
+      <div style="color:var(--text3); font-size:13px; text-align:center; padding:20px 0;">
+        생성 후 저장한 프롬프트가 여기 표시됩니다
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭 2: 대본 생성기
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-script">
+
+  <div class="card">
+    <div class="card-title">📝 영상 대본 생성기</div>
+
+    <div class="form-row">
+      <label>영상 제목 (일본어)</label>
+      <input type="text" id="scriptTitle" placeholder="예: 駄菓子屋が消えた本当の理由">
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>콘텐츠 축</label>
+        <select id="contentAxis">
+          <option value="쇼와향수">🏪 쇼와향수</option>
+          <option value="시니어생활">👴 시니어생활</option>
+          <option value="한국인의시선">🇰🇷 한국인의시선</option>
+          <option value="지역관광">🗺️ 지역관광</option>
+          <option value="문학역사">📚 문학·역사</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>영상 형식</label>
+        <select id="videoFormat">
+          <option value="shorts">📱 쇼츠 (30초~3분)</option>
+          <option value="long" selected>🎬 롱폼 (8~15분)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>핵심 내용 키워드 (한국어로 입력)</label>
+      <input type="text" id="scriptKeywords" placeholder="예: 편의점 등장, 위생 규제, 저출산으로 손님 감소">
+    </div>
+
+    <div class="form-row">
+      <label>댓글 유도 질문 방향</label>
+      <div class="chip-group" id="ctaChips"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="App.modules.Script.generate()">📝 대본 생성</button>
+      <button class="btn btn-secondary" onclick="App.modules.Script.loadFromContent()">📋 콘텐츠뱅크에서 선택</button>
+    </div>
+  </div>
+
+  <div id="scriptOutput" style="display:none">
+    <div class="card">
+      <div class="card-title">🎬 생성된 대본 구조</div>
+      <div id="scriptSections"></div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="App.copyAll('scriptSections')">📋 전체 복사</button>
+        <button class="btn btn-secondary btn-sm" onclick="App.modules.Script.exportText()">📄 텍스트 저장</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔮 이 대본용 Morphic 프롬프트</div>
+      <div id="scriptPrompts"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭 3: 콘텐츠뱅크
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-content">
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="totalCount">100</div>
+      <div class="stat-label">전체 주제</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="doneCount">0</div>
+      <div class="stat-label">완료</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="remainCount">100</div>
+      <div class="stat-label">남은 주제</div>
+    </div>
+  </div>
+
+  <div class="filter-bar" id="contentFilter">
+    <button class="filter-chip active" data-filter="all" onclick="App.modules.Content.filter('all', this)">전체</button>
+    <button class="filter-chip" data-filter="쇼와향수" onclick="App.modules.Content.filter('쇼와향수', this)">🏪 쇼와</button>
+    <button class="filter-chip" data-filter="시니어생활" onclick="App.modules.Content.filter('시니어생활', this)">👴 시니어</button>
+    <button class="filter-chip" data-filter="한국인의시선" onclick="App.modules.Content.filter('한국인의시선', this)">🇰🇷 한국시선</button>
+    <button class="filter-chip" data-filter="지역관광" onclick="App.modules.Content.filter('지역관광', this)">🗺️ 지역관광</button>
+    <button class="filter-chip" data-filter="문학역사" onclick="App.modules.Content.filter('문학역사', this)">📚 문학</button>
+    <button class="filter-chip" data-filter="A_필수" onclick="App.modules.Content.filter('A_필수', this)">🔴 A필수</button>
+  </div>
+
+  <div id="contentList"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭 4: 체크리스트
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-checklist">
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>전략 완성도 체크리스트</span>
+      <span id="clProgress">0 / 50</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="clProgressFill" style="width:0%"></div>
+    </div>
+    <div style="font-size:12px; color:var(--text3); margin-top:4px;" id="clScore">현재 점수: 0점 / 목표: 150점+</div>
+  </div>
+
+  <div id="checklistContainer"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary btn-sm" onclick="App.modules.Checklist.resetAll()">↺ 초기화</button>
+    <button class="btn btn-success btn-sm" onclick="App.modules.Checklist.exportCSV()">📊 CSV 내보내기</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭 5: SOP
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-sop">
+
+  <div class="card">
+    <div class="card-title">⚙️ 영상 제작 SOP — 현재 진행 중인 영상</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>현재 제작 중인 영상 제목</label>
+        <input type="text" id="sopVideoTitle" placeholder="영상 제목 입력">
+      </div>
+      <div class="form-row">
+        <label>영상 형식</label>
+        <select id="sopVideoType">
+          <option value="쇼츠">📱 쇼츠</option>
+          <option value="롱폼">🎬 롱폼</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="sopSteps"></div>
+
+  <div class="card">
+    <div class="card-title">📊 제작 QC 체크리스트</div>
+    <div id="qcChecklist"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭 6: 주간계획
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-week">
+
+  <div class="card">
+    <div class="card-title">📅 이번 주 업로드 계획</div>
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 이번 주 필수 할 일</div>
+    <div id="weekTasks"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 이번 주 수익화 액션</div>
+    <div id="revenueActions"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 주간 KPI 입력</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>신규 구독자</label>
+        <input type="number" id="kpiSubs" placeholder="0">
+      </div>
+      <div class="form-row">
+        <label>총 조회수</label>
+        <input type="number" id="kpiViews" placeholder="0">
+      </div>
+      <div class="form-row">
+        <label>시청시간 (h)</label>
+        <input type="number" id="kpiHours" placeholder="0">
+      </div>
+      <div class="form-row">
+        <label>주 수익 (¥)</label>
+        <input type="number" id="kpiRevenue" placeholder="0">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="App.modules.Week.saveKPI()">💾 저장</button>
+    <div id="kpiHistory" style="margin-top:12px; font-size:13px; color:var(--text2);"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     JavaScript — 모듈식 구조
+══════════════════════════════════════════ -->
+<script>
+// ── 앱 코어 ──────────────────────────────────────────────────────────────
+const App = {
+  state: {},
+
+  init() {
+    this.state = JSON.parse(localStorage.getItem('morphicStudio') || '{}');
+    this.modules.Prompt.init();
+    this.modules.Script.init();
+    this.modules.Content.init();
+    this.modules.Checklist.init();
+    this.modules.SOP.init();
+    this.modules.Week.init();
+  },
+
+  save() {
+    localStorage.setItem('morphicStudio', JSON.stringify(this.state));
+  },
+
+  switchTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  },
+
+  toast(msg, duration = 2000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  },
+
+  copyText(elId, btn) {
+    const el = document.getElementById(elId);
+    const text = el.innerText.replace('복사', '').replace('복사됨', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      if (btn) { btn.textContent = '복사됨'; btn.classList.add('copied'); }
+      setTimeout(() => { if (btn) { btn.textContent = '복사'; btn.classList.remove('copied'); } }, 2000);
+      this.toast('📋 클립보드에 복사됨!');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      this.toast('📋 복사됨!');
+    });
+  },
+
+  copyAll(elId) {
+    const el = document.getElementById(elId);
+    navigator.clipboard.writeText(el.innerText).then(() => this.toast('📋 전체 복사됨!'));
+  },
+
+  makeChips(containerId, items, stateKey, multi = true) {
+    const container = document.getElementById(containerId);
+    if (!this.state[stateKey]) this.state[stateKey] = multi ? [] : items[0]?.value;
+    container.innerHTML = items.map(item => {
+      const sel = multi
+        ? (this.state[stateKey] || []).includes(item.value)
+        : this.state[stateKey] === item.value;
+      return `<div class="chip ${sel ? 'selected' : ''}" onclick="App.toggleChip('${containerId}','${item.value}','${stateKey}',${multi})">${item.label}</div>`;
+    }).join('');
+  },
+
+  toggleChip(containerId, value, stateKey, multi) {
+    if (multi) {
+      if (!this.state[stateKey]) this.state[stateKey] = [];
+      const idx = this.state[stateKey].indexOf(value);
+      if (idx >= 0) this.state[stateKey].splice(idx, 1);
+      else this.state[stateKey].push(value);
+    } else {
+      this.state[stateKey] = value;
+    }
+    this.makeChips(containerId, this.modules.Prompt.getChipItems(containerId), stateKey, multi);
+    this.save();
+  },
+
+  // ── 모듈들 ──────────────────────────────────────────────────────────
+  modules: {}
+};
+
+// ══════════════════════════════════════════
+// MODULE: Prompt 생성기
+// ══════════════════════════════════════════
+App.modules.Prompt = {
+  scenes: [
+    { value: '商店街', label: '🏪 상점가' },
+    { value: '駄菓子屋', label: '🍭 과자가게' },
+    { value: '銭湯', label: '♨️ 목욕탕' },
+    { value: '家庭の茶の間', label: '🏠 가정 거실' },
+    { value: '小学校', label: '🏫 초등학교' },
+    { value: '地方駅', label: '🚃 시골역' },
+    { value: '温泉街', label: '♨️ 온천가' },
+    { value: '路地裏', label: '🌆 골목길' },
+    { value: '田んぼ道', label: '🌾 논두렁' },
+    { value: '夏祭り', label: '🏮 여름 축제' },
+    { value: '食堂', label: '🍜 대중식당' },
+    { value: '公衆電話', label: '📞 공중전화' },
+  ],
+  prohibits: [
+    { value: '現代の看板', label: '현대 간판 금지' },
+    { value: 'スマートフォン', label: '스마트폰 금지' },
+    { value: '現代の車', label: '현대 차량 금지' },
+    { value: 'ぼやけた文字', label: '왜곡 글자 삭제' },
+    { value: '過度な露出', label: '과노출 금지' },
+  ],
+
+  getChipItems(containerId) {
+    if (containerId === 'sceneChips') return this.scenes;
+    if (containerId === 'prohibitChips') return this.prohibits;
+    return [];
+  },
+
+  init() {
+    App.makeChips('sceneChips', this.scenes, 'selectedScenes', true);
+    App.makeChips('prohibitChips', this.prohibits, 'selectedProhibits', true);
+    this.renderSaved();
+  },
+
+  generate() {
+    const scenes = (App.state.selectedScenes || ['商店街']).join('、');
+    const era = document.getElementById('eraSelect').value;
+    const time = document.getElementById('timeSelect').value;
+    const camera = document.getElementById('cameraSelect').value;
+    const mood = document.getElementById('moodSelect').value;
+    const extra = document.getElementById('extraKeywords').value;
+    const prohibits = App.state.selectedProhibits || [];
+
+    if (!scenes || scenes === '') {
+      App.toast('⚠️ 장면 유형을 하나 이상 선택하세요'); return;
+    }
+
+    const extraPart = extra ? `、${extra}` : '';
+    const prohibitPart = prohibits.length > 0 ? `\n\n【禁止・注意】${prohibits.join('、')}` : '';
+
+    const prompt = `${era}の日本の${scenes}、${time}
+${this.getSceneDetails(App.state.selectedScenes || [])}${extraPart}
+${camera}、${mood}
+映画的な構図、感情的な温もり、詳細なテクスチャ、フォトリアリスティック
+クリップ長さ：5〜8秒、シネマスコープ比率${prohibitPart}`;
+
+    document.getElementById('promptText').innerHTML = `<button class="copy-btn" onclick="App.copyText('promptText', this)">복사</button>${prompt}`;
+    document.getElementById('promptOutput').style.display = 'block';
+    App.state.lastPrompt = prompt;
+    App.save();
+  },
+
+  getSceneDetails(scenes) {
+    const details = {
+      '商店街': '八百屋と魚屋、買い物かごを持つ主婦、子供たちの笑い声',
+      '駄菓子屋': '木の棚に並ぶ小さなお菓子、ランドセルの子供たち、店番のおばあさん、小銭',
+      '銭湯': '番台、木の脱衣ロッカー、湯気、壁の富士山の絵、牛乳瓶',
+      '家庭の茶の間': '畳、白黒テレビ、ちゃぶ台、家族が夕食を囲む、こたつ',
+      '小学校': '木製の机と椅子、黒板、チョーク、制服を着た子供たち、給食',
+      '地方駅': '木造駅舎、駅弁売り、古い列車、旅行客、ホーム',
+      '温泉街': '浴衣の旅行客、旅館の看板、湯けむり、夜の提灯、土産物屋',
+      '路地裏': '狭い路地、洗濯物、古い木造建物、猫、路地の奥の光',
+      '田んぼ道': '稲穂、農作業する人々、麦わら帽子、遠くの山',
+      '夏祭り': '提灯、浴衣、金魚すくい、焼きそばの屋台、花火',
+      '食堂': '暖簾、カウンター席、どんぶり、常連客、手書きメニュー',
+      '公衆電話': '赤い電話ボックス、受話器を持つ人、テレホンカード',
+    };
+    return scenes.map(s => details[s] || '').filter(Boolean).join('、');
+  },
+
+  generateVariant() {
+    const moods = ['16mmフィルム風', 'セピア調', '白黒写真風', '映画的な構図', '薄暮の光'];
+    const randMood = moods[Math.floor(Math.random() * moods.length)];
+    document.getElementById('moodSelect').value = moods.find(m => document.getElementById('moodSelect').value !== m) || randMood;
+    this.generate();
+    App.toast('🔄 변형 프롬프트 생성됨');
+  },
+
+  saveToBank() {
+    if (!App.state.lastPrompt) return;
+    if (!App.state.savedPrompts) App.state.savedPrompts = [];
+    App.state.savedPrompts.unshift({
+      id: Date.now(),
+      text: App.state.lastPrompt,
+      scenes: (App.state.selectedScenes || []).join(', '),
+      era: document.getElementById('eraSelect').value,
+      date: new Date().toLocaleDateString('ko-KR'),
+    });
+    if (App.state.savedPrompts.length > 30) App.state.savedPrompts.pop();
+    App.save();
+    this.renderSaved();
+    App.toast('💾 프롬프트 저장됨!');
+  },
+
+  renderSaved() {
+    const list = App.state.savedPrompts || [];
+    document.getElementById('savedCount').textContent = list.length;
+    const container = document.getElementById('savedPromptsList');
+    if (!list.length) {
+      container.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0;">저장된 프롬프트 없음</div>';
+      return;
+    }
+    container.innerHTML = list.map(p => `
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;">${p.era} · ${p.scenes} · ${p.date}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap;max-height:60px;overflow:hidden;">${p.text.split('\n')[0]}</div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="App.modules.Prompt.loadPrompt(${p.id})">불러오기</button>
+          <button class="btn btn-secondary btn-sm" onclick="App.modules.Prompt.copyPrompt(${p.id})">복사</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);" onclick="App.modules.Prompt.deletePrompt(${p.id})">삭제</button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  loadPrompt(id) {
+    const p = (App.state.savedPrompts || []).find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('promptText').innerHTML = `<button class="copy-btn" onclick="App.copyText('promptText', this)">복사</button>${p.text}`;
+    document.getElementById('promptOutput').style.display = 'block';
+    App.toast('✅ 프롬프트 불러옴');
+  },
+
+  copyPrompt(id) {
+    const p = (App.state.savedPrompts || []).find(x => x.id === id);
+    if (!p) return;
+    navigator.clipboard.writeText(p.text).then(() => App.toast('📋 복사됨!'));
+  },
+
+  deletePrompt(id) {
+    App.state.savedPrompts = (App.state.savedPrompts || []).filter(x => x.id !== id);
+    App.save();
+    this.renderSaved();
+  },
+
+  reset() {
+    App.state.selectedScenes = [];
+    App.state.selectedProhibits = [];
+    this.init();
+    document.getElementById('extraKeywords').value = '';
+    document.getElementById('promptOutput').style.display = 'none';
+  }
+};
+
+// ══════════════════════════════════════════
+// MODULE: Script 생성기
+// ══════════════════════════════════════════
+App.modules.Script = {
+  ctaTypes: [
+    { value: '추억질문', label: '💭 추억 질문형' },
+    { value: '비교질문', label: '🔄 현재와 비교형' },
+    { value: '지역질문', label: '📍 지역 물어보기' },
+    { value: '감사형', label: '🙏 감사·공감형' },
+  ],
+
+  init() {
+    App.makeChips('ctaChips', this.ctaTypes, 'selectedCTA', false);
+    if (!App.state.selectedCTA) App.state.selectedCTA = '추억질문';
+  },
+
+  generate() {
+    const title = document.getElementById('scriptTitle').value.trim();
+    const axis = document.getElementById('contentAxis').value;
+    const format = document.getElementById('videoFormat').value;
+    const keywords = document.getElementById('scriptKeywords').value.trim();
+    const ctaType = App.state.selectedCTA || '추억질문';
+
+    if (!title) { App.toast('⚠️ 영상 제목을 입력하세요'); return; }
+
+    const isShorts = format === 'shorts';
+    const duration = isShorts ? '30초~3분' : '8~15분';
+
+    const hookTemplates = {
+      '쇼와향수': `あなたは覚えていますか？\nあの懐かしい「${title.split('の')[0]}」を——`,
+      '시니어생활': `年齢を重ねるほど、気づくことがあります。\n今日は、${title}についてお話しします。`,
+      '한국인의시선': `韓国人の私が、日本で初めて知ったことがあります。\nそれは——${keywords ? keywords.split(',')[0] : title}のことでした。`,
+      '지역관광': `この景色を、AIで再現してみました。\n${title}——時間を旅してみましょう。`,
+      '문학역사': `ある一冊の小説が、私を昭和の東京へ連れて行ってくれました。\n今日は${title}の世界を歩きます。`,
+    };
+
+    const ctaTemplates = {
+      '추억질문': `皆さんの思い出の${title.split('の')[0]}はどんな場所でしたか？\nコメントで教えてください。`,
+      '비교질문': `今と昔、あなたはどちらが好きですか？\nコメントで聞かせてください。`,
+      '지역질문': `あなたの地元の${title.split('の')[0]}はどこにありましたか？\n地名と一緒に教えてください。`,
+      '감사형': `いつもご視聴ありがとうございます。\n今日の動画が少しでも懐かしい気持ちをお届けできたら嬉しいです。`,
+    };
+
+    const reasonKeywords = keywords ? keywords.split(',').map(k => k.trim()).filter(Boolean) : ['変化する社会', '時代の流れ'];
+
+    const script = {
+      hook: hookTemplates[axis] || hookTemplates['쇼와향수'],
+      intro: `${isShorts ? '' : `【동영상 구성】\n・시작: 감성 훅 (15초)\n・본문: 역사와 이유 설명 (${isShorts ? '1~2분' : '6~8분'})\n・현재 비교 (${isShorts ? '30초' : '2~3분'})\n・마무리 + 댓글 유도 (30초)\n\n`}今日は「${title}」についてお話しします。`,
+      main: `${reasonKeywords.map((k, i) => `【${isShorts ? '' : `理由${i+1}】`}${k}`).join('\n\n')}\n\n昭和の時代、${title.split('の')[0]}は単なる場所ではありませんでした。\nそれは人々の「日常」そのものでした。`,
+      present: `しかし時代は変わりました。\n今でも${title.split('の')[0]}を守り続けている場所があります。\nそれは過去の記憶を未来へ繋ぐ、大切な存在です。`,
+      outro: `【AI再現について】\nこの動画の映像はMorphic AIで生成した昭和の風景の再現です。\n史実に基づきながら、当時の雰囲気を忠実に再現しています。`,
+      cta: ctaTemplates[ctaType] || ctaTemplates['추억질문'],
+      pinComment: `📌 固定コメント：\n皆さんの思い出のエピソードをぜひコメントで教えてください。\n次回の動画のヒントにさせていただきます 🙏`,
+    };
+
+    const sections = document.getElementById('scriptSections');
+    sections.innerHTML = `
+      ${this.makeSection('🎬 오프닝 훅 (첫 15초)', script.hook, '#e8f0f8')}
+      ${this.makeSection('📖 인트로', script.intro, '#fff')}
+      ${this.makeSection('📚 본문', script.main, '#fff')}
+      ${this.makeSection('🔍 현재와 비교', script.present, '#fff')}
+      ${this.makeSection('⚠️ AI 재현 고지 (필수)', script.outro, '#fdf2e0')}
+      ${this.makeSection('💬 댓글 유도 (CTA)', script.cta, '#e8f5ed')}
+      ${this.makeSection('📌 고정 댓글', script.pinComment, '#f0ede8')}
+    `;
+
+    // 관련 프롬프트 생성
+    const promptSuggestions = document.getElementById('scriptPrompts');
+    promptSuggestions.innerHTML = `
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">이 대본에 필요한 Morphic 장면들:</div>
+      ${this.getRelatedPrompts(title, axis).map(p => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;">${p.label}</div>
+          <div style="font-size:12px;font-family:monospace;line-height:1.6;color:var(--text);">${p.prompt}</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="navigator.clipboard.writeText(\`${p.prompt.replace(/`/g, "'")}\`).then(()=>App.toast('복사됨!'))">📋 복사</button>
+        </div>
+      `).join('')}
+    `;
+
+    document.getElementById('scriptOutput').style.display = 'block';
+    App.state.lastScript = script;
+    App.save();
+  },
+
+  makeSection(title, content, bg) {
+    return `
+      <div class="script-section">
+        <div class="script-section-title">${title}</div>
+        <div class="script-block" style="background:${bg};">${content.replace(/\n/g, '<br>')}</div>
+      </div>
+    `;
+  },
+
+  getRelatedPrompts(title, axis) {
+    const era = '昭和40年代';
+    const base = title.includes('駄菓子') ? '駄菓子屋' :
+                 title.includes('銭湯') ? '銭湯' :
+                 title.includes('商店街') ? '商店街' :
+                 title.includes('給食') ? '小学校' :
+                 title.includes('駅') ? '地方駅' : '路地裏';
+
+    return [
+      {
+        label: '① 오프닝 감성 장면',
+        prompt: `${era}の日本の${base}、夕暮れ時、温かい光、ノスタルジック、16mmフィルム風、固定カメラ、5〜8秒`
+      },
+      {
+        label: '② 사람들이 있는 생활 장면',
+        prompt: `${era}の${base}、子供たちと大人、日常の一場面、柔らかい自然光、映画的な構図、5〜8秒`
+      },
+      {
+        label: '③ 클로즈업 디테일 장면',
+        prompt: `${era}の${base}のディテール、木の質感、古い看板、手作りの小物、マクロショット、懐かしい雰囲気、5〜8秒`
+      },
+    ];
+  },
+
+  exportText() {
+    if (!App.state.lastScript) return;
+    const text = Object.values(App.state.lastScript).join('\n\n---\n\n');
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `대본_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    App.toast('📄 텍스트 파일 저장됨');
+  },
+
+  loadFromContent() {
+    App.switchTab('content');
+    App.toast('💡 콘텐츠뱅크에서 주제를 선택하세요');
+  }
+};
+
+// ══════════════════════════════════════════
+// MODULE: Content 뱅크
+// ══════════════════════════════════════════
+App.modules.Content = {
+  data: [
+    { no:1, axis:'쇼와향수', title:'駄菓子屋が消えた本当の理由', desc:'불량식품 가게와 동네 커뮤니티 상실', fmt:'쇼츠→롱폼', hook:'あの小さなお店を覚えていますか？', cta:'あなたの町にも駄菓子屋はありましたか？', b2b:'상점가', pri:'A_필수' },
+    { no:2, axis:'쇼와향수', title:'昭和の銭湯はなぜ町から消えたのか', desc:'목욕탕이 가족·동네 만남의 공간이었던 시절', fmt:'롱폼', hook:'昔、銭湯はただのお風呂ではありませんでした', cta:'最後に行った銭湯を覚えていますか？', b2b:'온천시설', pri:'A_필수' },
+    { no:3, axis:'쇼와향수', title:'昭和の商店街がいちばん輝いていた頃', desc:'대형마트 이전 상점가의 역할과 인간관계', fmt:'롱폼', hook:'夕方になると、商店街は家族の声でいっぱいでした', cta:'好きだった商店街を教えてください', b2b:'상점가/지자체', pri:'A_필수' },
+    { no:4, axis:'쇼와향수', title:'黒電話の前で待っていた恋', desc:'전화 한 통을 기다리던 시대의 감성', fmt:'쇼츠', hook:'スマホがない時代、待つ時間にも意味がありました', cta:'昔の電話の思い出はありますか？', b2b:'브랜드감성', pri:'B_중요' },
+    { no:5, axis:'쇼와향수', title:'昭和の給食、今では考えられない献立', desc:'탈지분유·고래고기 등 세대별 급식 기억', fmt:'쇼츠→롱폼', hook:'この給食を知っている人は、何歳でしょうか', cta:'一番懐かしい給食は何ですか？', b2b:'교육/식품', pri:'A_필수' },
+    { no:6, axis:'시니어생활', title:'60代からもう一度始めたい小さな趣味', desc:'시니어의 취미 재개를 따뜻하게 독려', fmt:'롱폼', hook:'年齢を重ねてから始める楽しみがあります', cta:'もう一度やりたい趣味は？', b2b:'시니어서비스', pri:'A_필수' },
+    { no:7, axis:'시니어생활', title:'一人暮らしの食卓を寂しくしない工夫', desc:'혼밥을 정서적으로 다루되 건강 단정은 피함', fmt:'롱폼', hook:'一人の食卓にも、思い出は並びます', cta:'よく作る懐かしい料理は？', b2b:'식품/돌봄', pri:'B_중요' },
+    { no:8, axis:'한국인의시선', title:'韓国人が驚いた昭和のやさしい習慣', desc:'외국인의 따뜻한 관찰', fmt:'쇼츠', hook:'外国人だからこそ気づいた優しさがあります', cta:'懐かしい習慣はありますか？', b2b:'문화교류', pri:'A_필수' },
+    { no:9, axis:'한국인의시선', title:'韓国にもあった、昭和に似た風景', desc:'향수를 공유하는 문화적 접점', fmt:'롱폼', hook:'国は違っても、懐かしい風景は似ています', cta:'似ていると感じた風景は？', b2b:'문화관광', pri:'A_필수' },
+    { no:10, axis:'지역관광', title:'AIで歩く昭和の浅草', desc:'지역관광형 샘플 콘텐츠', fmt:'롱폼', hook:'観光客が少なかった頃の浅草を歩いてみます', cta:'行ってみたい昭和の街は？', b2b:'관광협회', pri:'A_필수' },
+    { no:11, axis:'지역관광', title:'昭和の温泉街をAIで再現する', desc:'온천·료칸 B2B 직접 연결', fmt:'롱폼', hook:'昔の温泉街には、夜のにぎわいがありました', cta:'好きだった温泉街は？', b2b:'온천/료칸', pri:'A_필수' },
+    { no:12, axis:'문학역사', title:'夏目漱石の東京をAIで歩く', desc:'문학과 도시 산책 결합', fmt:'롱폼', hook:'小説の中の東京を、AIで歩いてみます', cta:'好きな文学作品は？', b2b:'교육/문화', pri:'B_중요' },
+    { no:13, axis:'쇼와향수', title:'昭和の子供たちの遊び場', desc:'빈 땅에서 노는 아이들. 미디캄·비석치기 현대 대비', fmt:'쇼츠', hook:'スマホも塾もない、あの頃の放課後', cta:'一番好きだった遊びは何ですか？', b2b:'-', pri:'A_필수' },
+    { no:14, axis:'쇼와향수', title:'昭和の家電が変えた暮らし', desc:'냉장고·세탁기·TV 보급으로 바뀐 생활', fmt:'롱폼', hook:'あの日、白黒テレビが家にやってきました', cta:'初めて家に来た家電を覚えていますか？', b2b:'가전브랜드', pri:'B_중요' },
+    { no:15, axis:'시니어생활', title:'昭和の母の台所、あの味の秘密', desc:'어머니의 손맛과 쇼와 요리 문화', fmt:'롱폼', hook:'あの味は、お母さんの手の温もりでした', cta:'お母さんの得意料理は何でしたか？', b2b:'식품/요리', pri:'A_필수' },
+    { no:16, axis:'한국인의시선', title:'韓国人が選ぶ、昭和の名場面10選', desc:'한국인 큐레이터로서의 포지셔닝', fmt:'롱폼', hook:'外から見るからこそ、見えるものがあります', cta:'あなたの昭和の名場面は？', b2b:'-', pri:'B_중요' },
+    { no:17, axis:'지역관광', title:'昭和の京都、観光地になる前の姿', desc:'교토 관광 전 서민 생활의 모습', fmt:'롱폼', hook:'観光客で賑わう前の京都を知っていますか？', cta:'行ったことがある昭和の京都の場所は？', b2b:'관광협회', pri:'A_필수' },
+    { no:18, axis:'쇼와향수', title:'昭和のデパート屋上の秘密', desc:'백화점 옥상 유원지 전성기와 소멸', fmt:'쇼츠→롱폼', hook:'屋上に遊園地があった時代を覚えていますか？', cta:'行ったことがあるデパートの屋上は？', b2b:'상업시설', pri:'B_중요' },
+    { no:19, axis:'시니어생활', title:'昭和の老人と現代の老人、何が違う？', desc:'세대 비교로 시니어 자긍심 자극', fmt:'롱폼', hook:'昭和を生きた人たちの強さを、今に伝えたい', cta:'昭和世代と今の世代の違いは？', b2b:'-', pri:'B_중요' },
+    { no:20, axis:'문학역사', title:'芥川龍之介の「羅生門」をAIで再現', desc:'저작권 만료 문학 AI 영상화', fmt:'롱폼', hook:'あの有名な羅生門を、AIで歩いてみます', cta:'好きな芥川の作品は？', b2b:'교육', pri:'B_중요' },
+  ],
+
+  currentFilter: 'all',
+
+  init() {
+    if (!App.state.contentDone) App.state.contentDone = {};
+    this.render();
+  },
+
+  filter(type, el) {
+    this.currentFilter = type;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    this.render();
+  },
+
+  render() {
+    const filtered = this.data.filter(d => {
+      if (this.currentFilter === 'all') return true;
+      return d.axis === this.currentFilter || d.pri === this.currentFilter;
+    });
+
+    const done = Object.values(App.state.contentDone || {}).filter(Boolean).length;
+    document.getElementById('doneCount').textContent = done;
+    document.getElementById('remainCount').textContent = this.data.length - done;
+
+    const container = document.getElementById('contentList');
+    container.innerHTML = filtered.map(item => {
+      const isDone = App.state.contentDone?.[item.no];
+      return `
+        <div class="content-item ${isDone ? 'done' : ''}" id="ci-${item.no}">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <input type="checkbox" ${isDone ? 'checked' : ''} onchange="App.modules.Content.toggleDone(${item.no}, this)" style="margin-top:3px;accent-color:var(--accent2);width:16px;height:16px;">
+            <div style="flex:1;">
+              <div class="ci-title">${item.no}. ${item.title}</div>
+              <div class="ci-meta">
+                <span class="badge ${item.pri === 'A_필수' ? 'badge-A' : 'badge-B'}">${item.pri}</span>
+                <span class="badge ${item.fmt.includes('쇼츠') ? 'badge-shorts' : 'badge-long'}">${item.fmt}</span>
+                <span style="color:var(--text3);">${item.axis}</span>
+                ${item.b2b !== '-' ? `<span style="color:var(--accent2);font-size:11px;">💼 ${item.b2b}</span>` : ''}
+              </div>
+              <div class="ci-hook">훅: "${item.hook}"</div>
+              <div class="ci-hook" style="color:var(--accent2);">CTA: "${item.cta}"</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;padding-left:24px;">
+            <button class="btn btn-secondary btn-sm" onclick="App.modules.Content.useForScript(${item.no})">✏️ 대본 작성</button>
+            <button class="btn btn-secondary btn-sm" onclick="App.modules.Content.useForPrompt(${item.no})">🔮 프롬프트 생성</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  toggleDone(no, el) {
+    if (!App.state.contentDone) App.state.contentDone = {};
+    App.state.contentDone[no] = el.checked;
+    App.save();
+    this.render();
+    if (el.checked) App.toast('✅ 완료 표시됨!');
+  },
+
+  useForScript(no) {
+    const item = this.data.find(d => d.no === no);
+    if (!item) return;
+    document.getElementById('scriptTitle').value = item.title;
+    document.getElementById('contentAxis').value = item.axis;
+    document.getElementById('scriptKeywords').value = item.desc;
+    App.switchTab('script');
+    App.toast('✏️ 대본 탭으로 이동했습니다');
+  },
+
+  useForPrompt(no) {
+    const item = this.data.find(d => d.no === no);
+    if (!item) return;
+    App.switchTab('prompt');
+    App.toast('🔮 프롬프트 탭에서 장면을 선택하세요');
+  }
+};
+
+// ══════════════════════════════════════════
+// MODULE: Checklist
+// ══════════════════════════════════════════
+App.modules.Checklist = {
+  data: [
+    { section:'🎯 포지셔닝', items: [
+      { no:1, text:'일본어 채널 콘셉트 한 문장 고정', weight:4 },
+      { no:2, text:'채널명 후보 3개 선정 (昭和の記憶 등)', weight:3 },
+      { no:3, text:'정중한 기억 복원자 톤 확정', weight:4 },
+      { no:4, text:'AI 재현 목적을 소개문에 명시', weight:4 },
+      { no:5, text:'모빅(Morphic) 명칭 통일', weight:3 },
+    ]},
+    { section:'👥 타깃', items: [
+      { no:6, text:'50대/60대/70대 페르소나 분리', weight:4 },
+      { no:7, text:'큰 자막·느린 컷·명확한 내레이션 기준 설정', weight:3 },
+      { no:8, text:'일본어 댓글 템플릿 20개 준비', weight:3 },
+      { no:9, text:'시니어 생활형 주제 분리', weight:3 },
+      { no:10, text:'과장·조롱 표현 금지 규칙 확정', weight:3 },
+    ]},
+    { section:'🎬 콘텐츠', items: [
+      { no:11, text:'5대 콘텐츠 축 설정 (쇼와/시니어/한국시선/지역/문학)', weight:5 },
+      { no:12, text:'쇼츠 30개 제목 사전 작성', weight:4 },
+      { no:13, text:'롱폼 12개 제목 사전 작성', weight:4 },
+      { no:14, text:'댓글 사연 후속 콘텐츠 구조 설계', weight:4 },
+      { no:15, text:'계절 이벤트 (오봉·하나미·설날) 설계', weight:3 },
+      { no:16, text:'B2B 전환 가능한 지역 주제 확보', weight:4 },
+    ]},
+    { section:'📹 영상 포맷', items: [
+      { no:17, text:'쇼츠 30초~3분으로 정의', weight:4 },
+      { no:18, text:'롱폼 8~15분으로 정의', weight:4 },
+      { no:19, text:'상위 쇼츠의 롱폼화 규칙 (7일 내) 설정', weight:4 },
+      { no:20, text:'주 3쇼츠+1롱폼+2커뮤니티 루틴 확립', weight:4 },
+      { no:21, text:'첫 15초 훅 템플릿 5개 작성', weight:3 },
+    ]},
+    { section:'⚙️ Morphic SOP', items: [
+      { no:22, text:'리서치→대본→프롬프트→검수 SOP 문서화', weight:5 },
+      { no:23, text:'프롬프트 변수화 (시대/장소/인물/소품/시간/카메라)', weight:4 },
+      { no:24, text:'오류 컷 제거 기준 (손/글자/표정 왜곡) 확정', weight:4 },
+      { no:25, text:'5~8초 클립 제작 기준 적용', weight:3 },
+      { no:26, text:'프롬프트 라이브러리 30개 이상 구축', weight:4 },
+    ]},
+    { section:'💰 수익화', items: [
+      { no:27, text:'YPP 초기(500명·쇼츠1000만)·광고(1000명·4000h) 조건 분리', weight:5 },
+      { no:28, text:'쇼츠(유입)·롱폼(시청시간) 역할 분리', weight:4 },
+      { no:29, text:'YPP 전 B2B 현금흐름 설계', weight:5 },
+      { no:30, text:'일본어 B2B 제안서+샘플 영상 3개 준비', weight:4 },
+      { no:31, text:'멤버십·슈퍼땡스·라이브 확장 플랜', weight:3 },
+    ]},
+    { section:'💼 B2B 영업', items: [
+      { no:32, text:'관광협회·상점가·온천·노포 타깃 리스트 작성', weight:4 },
+      { no:33, text:'월 30곳 제안 루틴 설계', weight:4 },
+      { no:34, text:'가격표 3단계 (쇼츠¥30,000/롱폼¥80,000/패키지) 확정', weight:3 },
+      { no:35, text:'일본어 영업 메일 템플릿 작성', weight:3 },
+    ]},
+    { section:'⚠️ 리스크·정책', items: [
+      { no:36, text:'AI 합성·재현 공개 문구 고정댓글에 삽입', weight:4 },
+      { no:37, text:'저작권 자료 무단 사용 금지 체계 수립', weight:4 },
+      { no:38, text:'의료·금융·연금 단정 금지 규칙', weight:3 },
+      { no:39, text:'반복 콘텐츠 위험 관리 (분기별 리뷰)', weight:4 },
+      { no:40, text:'업로드 전 리스크 체크 7단계 적용', weight:4 },
+    ]},
+    { section:'🤝 커뮤니티', items: [
+      { no:41, text:'모든 영상 말미에 추억 질문 삽입', weight:3 },
+      { no:42, text:'고정댓글 추억 질문 + AI 재현 고지', weight:3 },
+      { no:43, text:'커뮤니티 탭 투표 주 2회', weight:2 },
+      { no:44, text:'월 1회 쇼와 Q&A 라이브 방송', weight:2 },
+      { no:45, text:'시청자 사연 AI 재현 시리즈 운영', weight:4 },
+    ]},
+    { section:'📊 KPI 관리', items: [
+      { no:46, text:'CTR·시청유지율·댓글률·구독전환율 관리표 운영', weight:4 },
+      { no:47, text:'24h·72h·7d 성과 3단계 점검 루틴', weight:3 },
+      { no:48, text:'하위 20% 포맷 폐기 기준 설정', weight:3 },
+      { no:49, text:'상위 쇼츠 7일 내 롱폼화 규칙', weight:3 },
+      { no:50, text:'주간 회고 + 제목 후보 10개 작성 루틴', weight:2 },
+    ]},
+  ],
+
+  init() {
+    if (!App.state.checklist) App.state.checklist = {};
+    this.render();
+    this.updateProgress();
+  },
+
+  render() {
+    const container = document.getElementById('checklistContainer');
+    container.innerHTML = this.data.map(section => `
+      <div class="cl-section">${section.section}</div>
+      ${section.items.map(item => {
+        const checked = App.state.checklist?.[item.no] || false;
+        return `
+          <label class="checklist-item ${checked ? 'checked' : ''}" onclick="App.modules.Checklist.toggle(${item.no})">
+            <input type="checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation()">
+            <span class="cl-text">${item.no}. ${item.text}</span>
+            <span class="cl-weight">가중치 ${item.weight}점</span>
+          </label>
+        `;
+      }).join('')}
+    `).join('');
+  },
+
+  toggle(no) {
+    if (!App.state.checklist) App.state.checklist = {};
+    App.state.checklist[no] = !App.state.checklist[no];
+    App.save();
+    this.render();
+    this.updateProgress();
+  },
+
+  updateProgress() {
+    const allItems = this.data.flatMap(s => s.items);
+    const checkedCount = allItems.filter(i => App.state.checklist?.[i.no]).length;
+    const totalWeight = allItems.reduce((s, i) => s + i.weight, 0);
+    const checkedWeight = allItems.filter(i => App.state.checklist?.[i.no]).reduce((s, i) => s + i.weight, 0);
+
+    document.getElementById('clProgress').textContent = `${checkedCount} / ${allItems.length}`;
+    document.getElementById('clProgressFill').style.width = `${(checkedCount / allItems.length) * 100}%`;
+    document.getElementById('clScore').textContent = `현재 점수: ${checkedWeight}점 / 목표: 150점+ (전체 ${totalWeight}점)`;
+  },
+
+  resetAll() {
+    if (confirm('체크리스트를 초기화할까요?')) {
+      App.state.checklist = {};
+      App.save();
+      this.render();
+      this.updateProgress();
+    }
+  },
+
+  exportCSV() {
+    const allItems = this.data.flatMap(s => s.items.map(i => ({ ...i, section: s.section })));
+    const csv = 'No.,분류,항목,가중치,상태\n' + allItems.map(i =>
+      `${i.no},"${i.section}","${i.text}",${i.weight},${App.state.checklist?.[i.no] ? '완료' : '미착수'}`
+    ).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `체크리스트_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    App.toast('📊 CSV 내보내기 완료');
+  }
+};
+
+// ══════════════════════════════════════════
+// MODULE: SOP
+// ══════════════════════════════════════════
+App.modules.SOP = {
+  steps: [
+    { no:1, title:'소재 리서치', desc:'시대/장소/소품/생활양식 3개 이상 확인. 과장·왜곡 금지', time:'30분', output:'리서치 메모' },
+    { no:2, title:'일본어 대본', desc:'기억 훅→과거 장면→사라진 이유→현재 비교→질문 구조', time:'40분', output:'대본 파일' },
+    { no:3, title:'프롬프트 작성', desc:'昭和年代+場所+人物+小物+時間+カメラ+感情 요소 포함', time:'30분', output:'프롬프트 목록' },
+    { no:4, title:'영상 생성 (Morphic)', desc:'장면당 2~3개 생성 후 선택. 손/글자/표정 오류 제거', time:'60분', output:'클립 8~20개' },
+    { no:5, title:'내레이션 녹음', desc:'차분한 TV 다큐 톤. BGM보다 음성 선명하게', time:'30분', output:'음성파일' },
+    { no:6, title:'편집 & 자막', desc:'큰 자막, 짧은 문장, 느린 전환. 가독성 최우선', time:'60분', output:'완성 영상' },
+    { no:7, title:'정책 검수 (필수)', desc:'AI 공개 문구, 저작권, 민감 주제, 문제 컷 삭제', time:'20분', output:'검수 완료표' },
+    { no:8, title:'업로드 & 분석', desc:'제목/설명/고정댓글/KPI 기록. 24h·72h·7d 분석', time:'20분', output:'KPI 기록' },
+  ],
+  qcItems: [
+    '손가락·글자·표정 왜곡 컷 삭제',
+    '현대 간판·스마트폰·현대차 제거 확인',
+    '자막 글씨 크기 충분히 큰지 확인',
+    '내레이션 음량 BGM보다 선명한지 확인',
+    '고정댓글: AI 재현 고지 문구 삽입',
+    '고정댓글: 추억 질문 삽입',
+    '영상 길이 기준 충족 (쇼츠 3분 이하 / 롱폼 8분 이상)',
+    '제목에 일본어 키워드 포함 확인',
+    '저작권 음악 미사용 확인',
+    '의료·금융·연금 단정 표현 없는지 확인',
+  ],
+
+  init() {
+    if (!App.state.sopStatus) App.state.sopStatus = {};
+    if (!App.state.qcStatus) App.state.qcStatus = {};
+    this.render();
+  },
+
+  render() {
+    const stepsEl = document.getElementById('sopSteps');
+    stepsEl.innerHTML = this.steps.map(s => {
+      const status = App.state.sopStatus?.[s.no] || 'pending';
+      return `
+        <div class="sop-step ${status === 'active' ? 'active' : status === 'done' ? 'done' : ''}">
+          <div class="sop-num">${status === 'done' ? '✓' : s.no}</div>
+          <div class="sop-content">
+            <div class="sop-title">${s.title}</div>
+            <div class="sop-desc">${s.desc}</div>
+            <div class="sop-time">⏱ ${s.time} | 산출물: ${s.output}</div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="App.modules.SOP.setStatus(${s.no},'active')">진행중</button>
+              <button class="btn btn-success btn-sm" onclick="App.modules.SOP.setStatus(${s.no},'done')">완료</button>
+              <button class="btn btn-sm" style="background:var(--surface2);" onclick="App.modules.SOP.setStatus(${s.no},'pending')">초기화</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const qcEl = document.getElementById('qcChecklist');
+    qcEl.innerHTML = this.qcItems.map((item, i) => `
+      <label class="checklist-item ${App.state.qcStatus?.[i] ? 'checked' : ''}" onclick="App.modules.SOP.toggleQC(${i})">
+        <input type="checkbox" ${App.state.qcStatus?.[i] ? 'checked' : ''}>
+        <span class="cl-text">${item}</span>
+      </label>
+    `).join('');
+  },
+
+  setStatus(no, status) {
+    if (!App.state.sopStatus) App.state.sopStatus = {};
+    App.state.sopStatus[no] = status;
+    App.save();
+    this.render();
+    if (status === 'done') App.toast(`✅ STEP ${no} 완료!`);
+  },
+
+  toggleQC(i) {
+    if (!App.state.qcStatus) App.state.qcStatus = {};
+    App.state.qcStatus[i] = !App.state.qcStatus[i];
+    App.save();
+    this.render();
+  },
+
+  resetSession() {
+    App.state.sopStatus = {};
+    App.state.qcStatus = {};
+    App.save();
+    this.render();
+    App.toast('↺ SOP 초기화됨');
+  }
+};
+
+// ══════════════════════════════════════════
+// MODULE: Week 주간계획
+// ══════════════════════════════════════════
+App.modules.Week = {
+  schedule: [
+    { day: '월', tasks: [
+      { type: 'community', label: '분석', color: '#8a5a20' },
+    ]},
+    { day: '화', tasks: [
+      { type: 'shorts', label: '쇼츠①', color: '#2a5f8f' },
+    ]},
+    { day: '수', tasks: [
+      { type: 'shorts', label: '쇼츠②', color: '#2a5f8f' },
+      { type: 'community', label: '커뮤니티', color: '#8a5a20' },
+    ]},
+    { day: '목', tasks: [
+      { type: 'long', label: '롱폼', color: '#4a8a60' },
+    ]},
+    { day: '금', tasks: [
+      { type: 'shorts', label: '쇼츠③', color: '#2a5f8f' },
+    ]},
+    { day: '토', tasks: [
+      { type: 'community', label: '커뮤니티', color: '#8a5a20' },
+    ]},
+    { day: '일', tasks: [
+      { type: 'live', label: '라이브', color: '#8a2a2a' },
+    ]},
+  ],
+
+  weekTasks: [
+    { icon: '📊', text: '[월] Analytics 분석 — CTR·시청유지율·구독자 확인', priority: '🔴' },
+    { icon: '🎬', text: '[화·수·금] 쇼츠 3개 제작·업로드', priority: '🔴' },
+    { icon: '🎥', text: '[목] 롱폼 1개 제작·업로드', priority: '🔴' },
+    { icon: '💬', text: '매일 댓글 100% 일본어 응답', priority: '🔴' },
+    { icon: '📝', text: '[수·토] 커뮤니티 탭 투표·퀴즈 2회', priority: '🟡' },
+    { icon: '💼', text: 'B2B 제안서 10곳 발송 (Morphic 영상 제작 서비스)', priority: '🔴' },
+    { icon: '📱', text: '쇼츠 → Instagram Reels 동시 업로드', priority: '🟡' },
+    { icon: '🔍', text: '경쟁 채널 TOP 5 모니터링', priority: '🟡' },
+  ],
+
+  revenueActions: [
+    { icon: '💼', text: 'B2B 타깃: 관광협회·온천·상점가에 제안서 발송', amount: '¥50,000~100,000/건' },
+    { icon: '🎬', text: '쇼츠 바이럴 집중 (1,000만 조회 → YPP 쇼츠 루트)', amount: '구독자 500명 목표' },
+    { icon: '📢', text: '슈퍼땡스 유도 — 라이브에서 추억 사연 읽기', amount: '¥500~5,000/건' },
+    { icon: '🤝', text: '시니어 브랜드 스폰서십 DM (건강식품·여행)', amount: '¥50,000~/편' },
+  ],
+
+  init() {
+    this.renderWeek();
+    this.renderTasks();
+    this.loadKPI();
+  },
+
+  renderWeek() {
+    const grid = document.getElementById('weekGrid');
+    grid.innerHTML = this.schedule.map(d => `
+      <div class="day-card">
+        <div class="day-name">${d.day}</div>
+        ${d.tasks.map(t => `<div class="day-task" style="background:${t.color};">${t.label}</div>`).join('')}
+      </div>
+    `).join('');
+  },
+
+  renderTasks() {
+    document.getElementById('weekTasks').innerHTML = this.weekTasks.map(t => `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px;border-bottom:1px solid var(--border);">
+        <span>${t.priority}</span>
+        <span style="font-size:16px;">${t.icon}</span>
+        <span style="font-size:13px;flex:1;">${t.text}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('revenueActions').innerHTML = this.revenueActions.map(a => `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px;border-bottom:1px solid var(--border);">
+        <span style="font-size:16px;">${a.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;">${a.text}</div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:600;">${a.amount}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  saveKPI() {
+    const entry = {
+      week: new Date().toLocaleDateString('ko-KR'),
+      subs: document.getElementById('kpiSubs').value || 0,
+      views: document.getElementById('kpiViews').value || 0,
+      hours: document.getElementById('kpiHours').value || 0,
+      revenue: document.getElementById('kpiRevenue').value || 0,
+    };
+    if (!App.state.kpiHistory) App.state.kpiHistory = [];
+    App.state.kpiHistory.unshift(entry);
+    if (App.state.kpiHistory.length > 12) App.state.kpiHistory.pop();
+    App.save();
+    this.loadKPI();
+    App.toast('💾 KPI 저장됨!');
+  },
+
+  loadKPI() {
+    const history = App.state.kpiHistory || [];
+    const el = document.getElementById('kpiHistory');
+    if (!history.length) { el.innerHTML = '아직 기록된 KPI가 없습니다.'; return; }
+    el.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">📈 기록 이력</div>' +
+      history.map(h => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--text3);">${h.week}</span> —
+          구독자 +${h.subs} | 조회수 ${Number(h.views).toLocaleString()} | 
+          시청시간 ${h.hours}h | 수익 ¥${Number(h.revenue).toLocaleString()}
+        </div>
+      `).join('');
+  }
+};
+
+// ── 앱 시작 ──────────────────────────────
+App.init();
+</script>
+</body>
+</html>
